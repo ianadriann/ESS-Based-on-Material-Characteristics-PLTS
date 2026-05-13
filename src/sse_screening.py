@@ -15,6 +15,12 @@ def screen_and_rank_sse(candidates: pd.DataFrame, config: dict) -> pd.DataFrame:
     weights = config["sse_scoring"]["weights"]
 
     df = candidates.copy()
+
+    # Exclude simple salts or materials not used as main SSE candidates
+    exclude_formulas = config["sse_scoring"].get("exclude_formulas", [])
+    if exclude_formulas:
+        df = df[~df["formula"].isin(exclude_formulas)]
+
     df = df[df["energy_above_hull"] <= float(filters["max_energy_above_hull"])]
     df = df[df["band_gap"] >= float(filters["min_band_gap"])]
 
