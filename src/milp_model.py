@@ -85,10 +85,16 @@ def solve_milp_case(
     else:
         y = E = Pcap = P_ch = P_dis = SOC = u_ch = u_dis = None
 
+    pv_reward = float(config["cost"].get("pv_reward_per_kwh", 0.0))
+    planning_years = float(config["simulation"].get("planning_years", 15))
+    E_h = 8760 / 24
+
     obj = (
-        quicksum(grid_cost * P_grid[t] for t in hours)
-        + quicksum(curt_cost * P_curt[i, t] for i in pv_buses for t in hours)
+        quicksum(grid_cost * P_grid[t] * E_h * planning_years for t in hours)
+        + quicksum(curt_cost * P_curt[i, t] * E_h * planning_years for i in pv_buses for t in hours)
+        - quicksum(pv_reward * P_pv_used[i, t] * E_h * planning_years for i in pv_buses for t in hours)
     )
+
     if has_ess:
         obj += quicksum(ess_cost * E[i] for i in ess_candidates)
     m.setObjective(obj, GRB.MINIMIZE)
