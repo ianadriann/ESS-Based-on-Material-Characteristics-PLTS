@@ -124,6 +124,10 @@ def solve_milp_case(
             m.addConstr(E[i] >= e_min * y[i], name=f"E_lo_{i}")
             m.addConstr(Pcap[i] <= p_max * y[i], name=f"Pcap_up_{i}")
             m.addConstr(Pcap[i] >= p_min * y[i], name=f"Pcap_lo_{i}")
+
+            pe_ratio = float(ess_scenario["power_energy_ratio"])
+            m.addConstr(Pcap[i] <= pe_ratio * E[i], name=f"Pcap_le_pe_ratio_{i}")
+
             for t in hours:
                 m.addConstr(P_ch[i, t] <= Pcap[i] * u_ch[i, t], name=f"Pch_up_{i}_{t}")
                 m.addConstr(P_dis[i, t] <= Pcap[i] * u_dis[i, t], name=f"Pdis_up_{i}_{t}")
