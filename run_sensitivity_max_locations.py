@@ -2,9 +2,8 @@ import copy
 import pandas as pd
 from pathlib import Path
 
-from src.data_loader import load_config, load_network_data, load_sse_candidates
+from src.data_loader import load_config, load_network_data
 from src.preprocess import build_load_timeseries, build_pv_profile
-from src.sse_screening import screen_and_rank_sse
 from src.ess_scenarios import build_ess_scenarios
 from src.milp_model import solve_milp_case
 from src.evaluation import summarize_case
@@ -13,6 +12,8 @@ from src.evaluation import summarize_case
 OUT_DIR = Path("results/tables")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
+EVIDENCE_PATH = Path("results/tables/sse_candidates_evidence_based.csv")
+
 max_location_values = [1, 2, 3]
 
 base_config = load_config()
@@ -20,8 +21,22 @@ network = load_network_data()
 load_ts = build_load_timeseries(network["bus"], network["load_profile"])
 pv_ts = build_pv_profile(network["irradiance"], base_config["pv"])
 
-ranked_sse = screen_and_rank_sse(load_sse_candidates(), base_config)
-scenarios = build_ess_scenarios(ranked_sse)
+if not EVIDENCE_PATH.exists():
+    raise FileNotFoundError(
+        "File evidence-based SSE belum ditemukan:\n"
+        "results/tables/sse_candidates_evidence_based.csv\n\n"
+        "Jalankan dulu:\n"
+        "python3 result_paper/build_sse_candidates_evidence_based.py"
+    )
+
+evidence_sse = pd.read_csv(EVIDENCE_PATH)
+scenarios = build_ess_scenarios(evidence_sse)
+
+if "generic_ess" not in scenarios:
+    raise ValueError(
+        "generic_ess belum ada di build_ess_scenarios(). "
+        "Periksa src/ess_scenarios.py."
+    )
 
 summary_rows = []
 
@@ -32,9 +47,12 @@ for max_loc in max_location_values:
     config["ess"]["max_locations"] = max_loc
 
     for scenario_name, scenario in scenarios.items():
+
+        # Baseline only needs to be solved once at base max location
         if scenario is None:
-            if max_loc != 3:
+            if max_loc != max(max_location_values):
                 continue
+
             case_name = "baseline_no_ess"
             result = solve_milp_case(
                 case_name=case_name,
@@ -44,6 +62,7 @@ for max_loc in max_location_values:
                 pv_ts=pv_ts,
                 ess_scenario=None,
             )
+
         else:
             case_name = f"{scenario_name}_maxloc_{max_loc}"
 
