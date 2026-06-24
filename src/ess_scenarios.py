@@ -107,6 +107,22 @@ def build_ess_scenarios(evidence_sse: pd.DataFrame) -> dict:
     return {
         "baseline_no_ess": None,
 
+        "generic_ess": {
+            "basis": "generic fixed-parameter benchmark",
+            "linked_material": "-",
+            "linked_material_id": "-",
+            "screening_class": "fixed-parameter benchmark",
+            "mapping_note": (
+                "Generic non-material-informed ESS benchmark using fixed "
+                "system-level planning parameters."
+            ),
+            "round_trip_eff": 0.9000,
+            "soc_min": 0.20,
+            "soc_max": 0.90,
+            "power_energy_ratio": 0.3500,
+            "cost_per_kwh": 300.0,
+        },
+
         "ESS_1_conservative": {
             "basis": "conservative",
             "linked_material": conservative["formula"],
